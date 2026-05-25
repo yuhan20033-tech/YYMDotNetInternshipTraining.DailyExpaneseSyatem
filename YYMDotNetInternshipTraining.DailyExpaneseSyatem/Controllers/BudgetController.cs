@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; // Needed for Include()
 using YYMDailyExpanese.Database.AppDbContextModels;
 using YYMDotNetInternshipTraining.DailyExpaneseSyatem.Models;
 
@@ -10,26 +11,64 @@ namespace YYMDotNetInternshipTraining.DailyExpaneseSyatem.Controllers
     {
         private readonly AppDbContext db = new AppDbContext();
 
+        // GET: api/Budget
         [HttpGet]
         public IActionResult GetBudgets()
         {
-            var lst = db.Budgets.ToList();
+            var lst = db.Budgets
+                .Include(b => b.Category)
+                .Include(b => b.User)
+                .Select(b => new
+                {
+                    b.BudgetId,
+                    b.UserId,
+                    b.CategoryId,
+                    b.LimitAmount,
+                    b.StartDate,
+                    b.EndDate,
+                    CategoryName = b.Category != null ? b.Category.CategoryName : null,
+                    UserName = b.User != null ? b.User.UserName : null
+                })
+                .ToList();
+
             return Ok(lst);
         }
 
+        // GET: api/Budget/5
         [HttpGet("{id}")]
         public IActionResult GetBudgetById(int id)
         {
-            var item = db.Budgets.FirstOrDefault(x => x.BudgetId == id);
+            var item = db.Budgets
+                .Include(b => b.Category)
+                .Include(b => b.User)
+                .FirstOrDefault(x => x.BudgetId == id);
+
             if (item == null)
                 return NotFound("Budget not found");
 
-            return Ok(item);
+            return Ok(new
+            {
+                item.BudgetId,
+                item.UserId,
+                item.CategoryId,
+                item.LimitAmount,
+                item.StartDate,
+                item.EndDate,
+                CategoryName = item.Category?.CategoryName,
+                UserName = item.User?.UserName
+            });
         }
 
+        // POST: api/Budget
         [HttpPost]
         public IActionResult CreateBudget(BudgetCreateRequestModel request)
         {
+            // Validate Foreign Keys
+            if (!db.Users.Any(u => u.UserId == request.UserId))
+                return BadRequest($"User with ID {request.UserId} does not exist.");
+            if (!db.Categories.Any(c => c.CategoryId == request.CategoryId))
+                return BadRequest($"Category with ID {request.CategoryId} does not exist.");
+
             db.Budgets.Add(new Budget
             {
                 UserId = request.UserId,
@@ -47,6 +86,7 @@ namespace YYMDotNetInternshipTraining.DailyExpaneseSyatem.Controllers
             });
         }
 
+        // PUT: api/Budget/5
         [HttpPut("{id}")]
         public IActionResult UpdateBudget(int id, BudgetUpdateRequestModel request)
         {
@@ -69,6 +109,7 @@ namespace YYMDotNetInternshipTraining.DailyExpaneseSyatem.Controllers
             });
         }
 
+        // PATCH: api/Budget/5
         [HttpPatch("{id}")]
         public IActionResult PatchBudget(int id, BudgetPatchRequestModel request)
         {
@@ -77,31 +118,11 @@ namespace YYMDotNetInternshipTraining.DailyExpaneseSyatem.Controllers
                 return NotFound(new BudgetUpdateResponseModel { IsSuccess = false, Message = "Budget not found" });
 
             int count = 0;
-            if (request.UserId.HasValue)
-            {
-                item.UserId = request.UserId.Value;
-                count++;
-            }
-            if (request.CategoryId.HasValue)
-            {
-                item.CategoryId = request.CategoryId.Value;
-                count++;
-            }
-            if (request.LimitAmount.HasValue)
-            {
-                item.LimitAmount = request.LimitAmount.Value;
-                count++;
-            }
-            if (request.StartDate.HasValue)
-            {
-                item.StartDate = request.StartDate.Value;
-                count++;
-            }
-            if (request.EndDate.HasValue)
-            {
-                item.EndDate = request.EndDate.Value;
-                count++;
-            }
+            if (request.UserId.HasValue) { item.UserId = request.UserId.Value; count++; }
+            if (request.CategoryId.HasValue) { item.CategoryId = request.CategoryId.Value; count++; }
+            if (request.LimitAmount.HasValue) { item.LimitAmount = request.LimitAmount.Value; count++; }
+            if (request.StartDate.HasValue) { item.StartDate = request.StartDate.Value; count++; }
+            if (request.EndDate.HasValue) { item.EndDate = request.EndDate.Value; count++; }
 
             if (count == 0)
                 return BadRequest(new BudgetUpdateResponseModel { IsSuccess = false, Message = "No fields to update" });
@@ -111,10 +132,11 @@ namespace YYMDotNetInternshipTraining.DailyExpaneseSyatem.Controllers
             {
                 IsSuccess = result > 0,
                 Message = result > 0 ? "Budget patched successfully" : "Failed to patch budget",
-               
+                
             });
         }
 
+        // DELETE: api/Budget/5
         [HttpDelete("{id}")]
         public IActionResult DeleteBudget(int id)
         {

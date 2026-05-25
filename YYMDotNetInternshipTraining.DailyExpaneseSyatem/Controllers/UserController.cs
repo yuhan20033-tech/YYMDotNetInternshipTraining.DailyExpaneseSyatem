@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; // Needed for Include()
 using YYMDailyExpanese.Database.AppDbContextModels;
 using YYMDotNetInternshipTraining.DailyExpaneseSyatem.Models;
 
@@ -11,21 +11,36 @@ namespace YYMDotNetInternshipTraining.DailyExpaneseSyatem.Controllers
     {
         private readonly AppDbContext db = new AppDbContext();
 
+        // GET: api/User
         [HttpGet]
         public IActionResult GetUsers()
         {
-            var lst = db.Users.ToList();
+            var lst = db.Users
+                        .Include(u => u.Budgets)
+                        .Include(u => u.Expenses)
+                        .Include(u => u.Reports)
+                        .ToList();
+
             return Ok(lst);
         }
 
+        // GET: api/User/5
         [HttpGet("{id}")]
         public IActionResult GetUserById(int id)
         {
-            var item = db.Users.FirstOrDefault(x => x.UserId == id);
-            if (item == null) return NotFound("User not found");
+            var item = db.Users
+                         .Include(u => u.Budgets)
+                         .Include(u => u.Expenses)
+                         .Include(u => u.Reports)
+                         .FirstOrDefault(x => x.UserId == id);
+
+            if (item == null)
+                return NotFound("User not found");
+
             return Ok(item);
         }
 
+        // POST: api/User
         [HttpPost]
         public IActionResult CreateUser(UserCreateRequestModel request)
         {
@@ -45,11 +60,13 @@ namespace YYMDotNetInternshipTraining.DailyExpaneseSyatem.Controllers
             });
         }
 
+        // PUT: api/User/5
         [HttpPut("{id}")]
         public IActionResult UpdateUser(int id, UserUpdateRequestModel request)
         {
             var item = db.Users.FirstOrDefault(x => x.UserId == id);
-            if (item == null) return NotFound(new UserUpdateResponseModel { IsSuccess = false, Message = "User not found" });
+            if (item == null)
+                return NotFound(new UserUpdateResponseModel { IsSuccess = false, Message = "User not found" });
 
             item.UserName = request.UserName;
             item.Email = request.Email;
@@ -65,11 +82,13 @@ namespace YYMDotNetInternshipTraining.DailyExpaneseSyatem.Controllers
             });
         }
 
+        // DELETE: api/User/5
         [HttpDelete("{id}")]
         public IActionResult DeleteUser(int id)
         {
             var item = db.Users.FirstOrDefault(x => x.UserId == id);
-            if (item == null) return NotFound(new UserUpdateResponseModel { IsSuccess = false, Message = "User not found" });
+            if (item == null)
+                return NotFound(new UserUpdateResponseModel { IsSuccess = false, Message = "User not found" });
 
             db.Users.Remove(item);
             var result = db.SaveChanges();

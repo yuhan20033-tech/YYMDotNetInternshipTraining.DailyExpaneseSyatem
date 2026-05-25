@@ -10,7 +10,7 @@ public partial class Budget
     public int UserId { get; set; }
 
     public int CategoryId { get; set; }
-
+    public int CategoryName { get; set; } 
     public decimal LimitAmount { get; set; }
 
     public DateOnly StartDate { get; set; }

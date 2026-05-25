@@ -1,17 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization; // 👈 Needed for JsonIgnore
 
-namespace YYMDailyExpanese.Database.AppDbContextModels;
-
-public partial class Category
+namespace YYMDailyExpanese.Database.AppDbContextModels
 {
-    public int CategoryId { get; set; }
+    public partial class Category
+    {
+        public int CategoryId { get; set; }
 
-    public string CategoryName { get; set; } = null!;
+        public string CategoryName { get; set; } = null!;
 
-    public string? Description { get; set; }
+        public string? Description { get; set; }
 
-    public virtual ICollection<Budget> Budgets { get; set; } = new List<Budget>();
+        // 👇 Prevent cycles in JSON serialization
+        [JsonIgnore]
+        public virtual ICollection<Budget> Budgets { get; set; } = new List<Budget>();
 
-    public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+        [JsonIgnore]
+        public virtual ICollection<Expense> Expenses { get; set; } = new List<Expense>();
+    }
 }
