@@ -1,0 +1,6 @@
+@YYMDotNetInternshipTraining.DailyExpaneseSyatem_HostAddress = http://localhost:5091
+
+GET {{YYMDotNetInternshipTraining.DailyExpaneseSyatem_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
